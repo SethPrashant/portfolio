@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Tara Bala Weekly Calendar</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    background: #fff;
+    color: #222;
+    padding: 16px;
+  }
+
+  .controls {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .control-group label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  .control-group select {
+    padding: 6px 10px;
+    font-size: 14px;
+    min-width: 140px;
+  }
+
+  .legend {
+    float: right;
+    border: 1px solid #ccc;
+    width: 160px;
+    margin-bottom: 10px;
+  }
+  .legend div {
+    padding: 4px 10px;
+    font-size: 13px;
+    color: #fff;
+    font-weight: bold;
+  }
+  .legend .avoid       { background: #e02424; }
+  .legend .challenging { background: #c8801a; }
+  .legend .excellent   { background: #1faa3c; }
+  .legend .good        { background: #b6f0b6; color: #1a5c1a; }
+  .legend .neutral     { background: #fdf6c0; color: #6b6320; }
+
+  table.calendar {
+    border-collapse: collapse;
+    width: 100%;
+    table-layout: fixed;
+    clear: both;
+  }
+  table.calendar th, table.calendar td {
+    border: 1px solid #999;
+    vertical-align: top;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  table.calendar th {
+    background: #f2f2f2;
+    text-align: left;
+  }
+  .week-col {
+    width: 50px;
+    background: #f2f2f2;
+    font-weight: bold;
+    text-align: center;
+  }
+  .day-cell .date {
+    font-weight: bold;
+    display: block;
+  }
+  .day-cell .nakshatra {
+    display: block;
+  }
+  .day-cell .pct {
+    display: block;
+    font-size: 12px;
+  }
+
+  /* tara bala tiers */
+  .avoid       { background: #e02424; color: #fff; }
+  .challenging { background: #c8801a; color: #fff; }
+  .excellent   { background: #1faa3c; color: #fff; }
+  .good        { background: #b6f0b6; color: #1a5c1a; }
+  .neutral     { background: #fdf6c0; color: #6b6320; }
+  .empty       { background: #fff; }
+</style>
+</head>
+<body>
+
+  <div class="controls">
+    <div class="control-group">
+      <label for="rashi">Rashi</label>
+      <select id="rashi">
+        <option>Aries</option>
+        <option>Taurus</option>
+        <option>Gemini</option>
+        <option>Cancer</option>
+        <option>Leo</option>
+        <option>Virgo</option>
+        <option>Libra</option>
+        <option>Scorpio</option>
+        <option>Sagittarius</option>
+        <option>Capricorn</option>
+        <option>Aquarius</option>
+        <option>Pisces</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="janamNakshatra">Janam Nakshatra</label>
+      <select id="janamNakshatra">
+        <option>Ashwini</option>
+        <option>Bharani</option>
+        <option>Krittika</option>
+        <option>Rohini</option>
+        <option>Mrigashirsha</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="avoid">Avoid</div>
+    <div class="challenging">Challenging</div>
+    <div class="excellent">Excellent</div>
+    <div class="good">Good</div>
+    <div class="neutral">Neutral</div>
+  </div>
+
+  <table class="calendar">
+    <thead>
+      <tr>
+        <th class="week-col">Week</th>
+        <th>Monday</th>
+        <th>Tuesday</th>
+        <th>Wednesday</th>
+        <th>Thursday</th>
+        <th>Friday</th>
+        <th>Saturday</th>
+        <th>Sunday</th>
+      </tr>
+    </thead>
+    <tbody id="calendarBody">
+      <!-- rows injected by JS -->
+    </tbody>
+  </table>
+
+<script>
+
+// ---- sample Tara Bala data, shaped like your DimNakshatra / FactPanchang feed ----
+// tier maps to a CSS class; pct is the Tara Bala score percentage
+//
+// Real Tara Bala depends on the distance (in Nakshatras) between the transiting
+// Moon's Nakshatra and the person's Janam Nakshatra, so different Rashi / Janam
+// Nakshatra selections genuinely produce different tiers/percentages for the
+// same calendar dates. Below are a couple of illustrative MOCK datasets keyed
+// by "Rashi|JanamNakshatra" so the dropdowns visibly change the grid.
+// Replace `getDataFor()` with a real fetch() to your API once it's ready.
+
+var datasets = {
+  'Aries|Ashwini': [
+    {
+      week: 23,
+      days: [
+        { date: '1 Jun', nakshatra: 'Jyeshtha', pct: 60.53, tier: 'good' },
+        { date: '2 Jun', nakshatra: 'Mula', pct: 60.53, tier: 'good' },
+        { date: '3 Jun', nakshatra: 'Purva Ashadha', pct: 76.32, tier: 'excellent' },
+        { date: '4 Jun', nakshatra: 'Uttara Ashadha', pct: 73.68, tier: 'good' },
+        { date: '5 Jun', nakshatra: 'Uttara Ashadha', pct: 65.79, tier: 'good' },
+        { date: '6 Jun', nakshatra: 'Shravana', pct: 65.79, tier: 'good' },
+        { date: '7 Jun', nakshatra: 'Dhanishtha', pct: 55.26, tier: 'neutral' }
+      ]
+    },
+    {
+      week: 24,
+      days: [
+        { date: '8 Jun', nakshatra: 'Shatabhisha', pct: 68.42, tier: 'good' },
+        { date: '9 Jun', nakshatra: 'Purva Bhadrapada', pct: 50.00, tier: 'neutral' },
+        { date: '10 Jun', nakshatra: 'Uttara Bhadrapada', pct: 63.16, tier: 'good' },
+        { date: '11 Jun', nakshatra: 'Revati', pct: 81.58, tier: 'excellent' },
+        { date: '12 Jun', nakshatra: 'Ashwini', pct: 71.05, tier: 'good' },
+        { date: '13 Jun', nakshatra: 'Bharani', pct: 65.79, tier: 'good' },
+        { date: '14 Jun', nakshatra: 'Krittika', pct: 34.21, tier: 'challenging' }
+      ]
+    },
+    {
+      week: 25,
+      days: [
+        { date: '15 Jun', nakshatra: 'Mrigashirsha', pct: 42.11, tier: 'challenging' },
+        { date: '16 Jun', nakshatra: 'Ardra', pct: 52.63, tier: 'neutral' },
+        { date: '17 Jun', nakshatra: 'Punarvasu', pct: 65.79, tier: 'good' },
+        { date: '18 Jun', nakshatra: 'Pushya', pct: 65.79, tier: 'good' },
+        { date: '19 Jun', nakshatra: 'Ashlesha', pct: 73.68, tier: 'good' },
+        { date: '20 Jun', nakshatra: 'Magha', pct: 55.26, tier: 'neutral' },
+        { date: '21 Jun', nakshatra: 'Purva Phalguni', pct: 81.58, tier: 'excellent' }
+      ]
+    },
+    {
+      week: 26,
+      days: [
+        { date: '22 Jun', nakshatra: 'Uttara Phalguni', pct: 26.32, tier: 'avoid' },
+        { date: '23 Jun', nakshatra: 'Hasta', pct: 50.00, tier: 'neutral' },
+        { date: '24 Jun', nakshatra: 'Chitra', pct: 60.53, tier: 'good' },
+        { date: '25 Jun', nakshatra: 'Swati', pct: 86.84, tier: 'excellent' },
+        { date: '26 Jun', nakshatra: 'Vishakha', pct: 65.79, tier: 'good' },
+        { date: '27 Jun', nakshatra: 'Anuradha', pct: 63.16, tier: 'good' },
+        { date: '28 Jun', nakshatra: 'Jyeshtha', pct: 52.63, tier: 'neutral' }
+      ]
+    },
+    {
+      week: 27,
+      days: [
+        { date: '29 Jun', nakshatra: 'Mula', pct: 63.16, tier: 'good' },
+        { date: '30 Jun', nakshatra: 'Mula', pct: 71.05, tier: 'good' },
+        null, null, null, null, null
+      ]
+    }
+  ],
+
+  'Taurus|Bharani': [
+    {
+      week: 23,
+      days: [
+        { date: '1 Jun', nakshatra: 'Jyeshtha', pct: 34.21, tier: 'challenging' },
+        { date: '2 Jun', nakshatra: 'Mula', pct: 26.32, tier: 'avoid' },
+        { date: '3 Jun', nakshatra: 'Purva Ashadha', pct: 50.00, tier: 'neutral' },
+        { date: '4 Jun', nakshatra: 'Uttara Ashadha', pct: 55.26, tier: 'neutral' },
+        { date: '5 Jun', nakshatra: 'Uttara Ashadha', pct: 60.53, tier: 'good' },
+        { date: '6 Jun', nakshatra: 'Shravana', pct: 71.05, tier: 'good' },
+        { date: '7 Jun', nakshatra: 'Dhanishtha', pct: 81.58, tier: 'excellent' }
+      ]
+    },
+    {
+      week: 24,
+      days: [
+        { date: '8 Jun', nakshatra: 'Shatabhisha', pct: 86.84, tier: 'excellent' },
+        { date: '9 Jun', nakshatra: 'Purva Bhadrapada', pct: 73.68, tier: 'good' },
+        { date: '10 Jun', nakshatra: 'Uttara Bhadrapada', pct: 65.79, tier: 'good' },
+        { date: '11 Jun', nakshatra: 'Revati', pct: 60.53, tier: 'good' },
+        { date: '12 Jun', nakshatra: 'Ashwini', pct: 52.63, tier: 'neutral' },
+        { date: '13 Jun', nakshatra: 'Bharani', pct: 42.11, tier: 'challenging' },
+        { date: '14 Jun', nakshatra: 'Krittika', pct: 26.32, tier: 'avoid' }
+      ]
+    },
+    {
+      week: 25,
+      days: [
+        { date: '15 Jun', nakshatra: 'Mrigashirsha', pct: 50.00, tier: 'neutral' },
+        { date: '16 Jun', nakshatra: 'Ardra', pct: 63.16, tier: 'good' },
+        { date: '17 Jun', nakshatra: 'Punarvasu', pct: 71.05, tier: 'good' },
+        { date: '18 Jun', nakshatra: 'Pushya', pct: 76.32, tier: 'excellent' },
+        { date: '19 Jun', nakshatra: 'Ashlesha', pct: 65.79, tier: 'good' },
+        { date: '20 Jun', nakshatra: 'Magha', pct: 55.26, tier: 'neutral' },
+        { date: '21 Jun', nakshatra: 'Purva Phalguni', pct: 34.21, tier: 'challenging' }
+      ]
+    },
+    {
+      week: 26,
+      days: [
+        { date: '22 Jun', nakshatra: 'Uttara Phalguni', pct: 60.53, tier: 'good' },
+        { date: '23 Jun', nakshatra: 'Hasta', pct: 71.05, tier: 'good' },
+        { date: '24 Jun', nakshatra: 'Chitra', pct: 81.58, tier: 'excellent' },
+        { date: '25 Jun', nakshatra: 'Swati', pct: 50.00, tier: 'neutral' },
+        { date: '26 Jun', nakshatra: 'Vishakha', pct: 42.11, tier: 'challenging' },
+        { date: '27 Jun', nakshatra: 'Anuradha', pct: 26.32, tier: 'avoid' },
+        { date: '28 Jun', nakshatra: 'Jyeshtha', pct: 55.26, tier: 'neutral' }
+      ]
+    },
+    {
+      week: 27,
+      days: [
+        { date: '29 Jun', nakshatra: 'Mula', pct: 65.79, tier: 'good' },
+        { date: '30 Jun', nakshatra: 'Mula', pct: 73.68, tier: 'good' },
+        null, null, null, null, null
+      ]
+    }
+  ]
+};
+
+// Fallback: any Rashi/Nakshatra combo not explicitly listed above reuses the
+// Aries|Ashwini dataset so the demo never shows a blank grid. Swap this whole
+// function for a real fetch() against your API when ready.
+function getDataFor(rashi, janamNakshatra) {
+  var key = rashi + '|' + janamNakshatra;
+  return datasets[key] || datasets['Aries|Ashwini'];
+}
+
+function renderCalendar(data) {
+  var body = document.getElementById('calendarBody');
+  body.innerHTML = '';
+
+  data.forEach(function (weekRow) {
+    var tr = document.createElement('tr');
+
+    var weekTd = document.createElement('td');
+    weekTd.className = 'week-col';
+    weekTd.textContent = weekRow.week;
+    tr.appendChild(weekTd);
+
+    weekRow.days.forEach(function (day) {
+      var td = document.createElement('td');
+      td.className = 'day-cell';
+
+      if (day) {
+        td.classList.add(day.tier);
+        td.innerHTML =
+          '<span class="date">' + day.date + '</span>' +
+          '<span class="nakshatra">' + day.nakshatra + '</span>' +
+          '<span class="pct">(' + day.pct.toFixed(2) + '%)</span>';
+      } else {
+        td.classList.add('empty');
+      }
+
+      tr.appendChild(td);
+    });
+
+    body.appendChild(tr);
+  });
+}
+
+renderCalendar(getDataFor(document.getElementById('rashi').value, document.getElementById('janamNakshatra').value));
+
+function refreshCalendar() {
+  var rashi = document.getElementById('rashi').value;
+  var janamNakshatra = document.getElementById('janamNakshatra').value;
+  renderCalendar(getDataFor(rashi, janamNakshatra));
+
+  // TODO: once your API exists, replace getDataFor(...) above with something like:
+  //   fetch('/api/tara-bala?rashi=' + rashi + '&nakshatra=' + janamNakshatra)
+  //     .then(res => res.json())
+  //     .then(data => renderCalendar(data));
+}
+
+document.getElementById('rashi').addEventListener('change', refreshCalendar);
+document.getElementById('janamNakshatra').addEventListener('change', refreshCalendar);
+
+</script>
+
+</body>
+</html>
